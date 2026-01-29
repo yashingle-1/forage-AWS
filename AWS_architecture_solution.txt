@@ -1,0 +1,71 @@
+Hi Lilly,
+
+It’s great to hear about Fastier’s recent growth, and congratulations on the traction you’ve been getting. Based on the challenges you outlined—slow response times during peak usage, occasional server crashes, deployment downtime, and the absence of a disaster recovery strategy—we’ve designed an AWS architecture that focuses on scalability, resilience, and smoother deployments, while still keeping operational complexity and costs under control.
+
+Below is a high-level overview of the proposed architecture, followed by an explanation of each component, why it was chosen, and how costs may vary month to month.
+
+Architecture Overview
+At a high level, the solution separates concerns across networking, application compute, and data layers, while introducing redundancy and automation. Traffic is routed through DNS and load balancing to an auto-scaling application layer, with a managed database backend and a CI/CD pipeline to support zero-downtime deployments.
+
+Route 53 (DNS)
+Amazon Route 53 is used to manage Fastier’s domain and route user traffic from the internet to the application load balancer. Route 53 is highly available by default and integrates cleanly with other AWS services. This ensures users are always directed to healthy application endpoints, even as instances are added or removed behind the scenes.
+
+Elastic Load Balancing (Application Load Balancer)
+An Application Load Balancer (ALB) sits in front of the application layer and distributes incoming HTTP/HTTPS traffic across multiple EC2 instances. This removes the single-instance bottleneck you are currently experiencing and improves reliability by automatically routing traffic away from unhealthy instances. It also enables horizontal scaling as traffic increases.
+
+Elastic Beanstalk with Auto Scaling EC2 Group
+For the application layer, we recommend AWS Elastic Beanstalk running your Python/Flask backend. Elastic Beanstalk is well suited for startups because it abstracts away much of the infrastructure management while still allowing flexibility when needed.
+
+Elastic Beanstalk manages:
+
+An Auto Scaling Group of EC2 instances to handle variable load
+
+Health checks and instance replacement
+
+Blue/Green deployments to eliminate downtime during releases
+
+As traffic grows, additional EC2 instances are launched automatically, preventing memory exhaustion and crashes. During quieter periods, instances scale down, helping control costs.
+
+Your React single-page application can be served either through Elastic Beanstalk or, for better performance and cost efficiency, as static assets stored in S3 and delivered via the load balancer.
+
+RDS PostgreSQL (Multi-AZ)
+To replace the single self-managed database, we recommend Amazon RDS for PostgreSQL with a Multi-AZ configuration. This provides:
+
+Automated backups and patching
+
+Synchronous replication to a standby instance in a second availability zone
+
+Automatic failover in the event of an outage
+
+This significantly improves availability and forms the foundation of a disaster recovery strategy, without requiring custom replication logic or manual intervention.
+
+Amazon S3 (Backups and Assets)
+Amazon S3 is used for database backups, logs, and potentially static assets. S3 offers extremely high durability and low storage costs, making it ideal for backups and long-term storage. Lifecycle policies can be applied to automatically move older data to cheaper storage tiers.
+
+CodePipeline (CI/CD)
+AWS CodePipeline enables an automated deployment pipeline from source control through to production. When combined with Elastic Beanstalk’s Blue/Green deployments, this allows new versions of the application to be released with no downtime and an easy rollback path if issues occur.
+
+Availability Zones and Resilience
+The architecture spans multiple availability zones, meaning that a failure in one zone does not bring down the entire application. While this slightly increases cost, it dramatically improves reliability and is appropriate given Fastier’s growth trajectory.
+
+Cost Overview
+Costs will primarily vary based on usage:
+
+EC2 and Auto Scaling: Scales with traffic; higher during peak usage, lower during quiet periods
+
+Load Balancer: Charged based on traffic processed
+
+RDS: Fixed baseline cost with some variability from storage and I/O
+
+S3: Very low cost, driven mainly by storage volume and data transfer
+
+CodePipeline: Minimal cost, largely independent of traffic
+
+Overall, this architecture avoids paying for unused capacity while ensuring Fastier can handle continued linear growth and traffic spikes confidently.
+
+While Elastic Beanstalk is not the only possible solution, it offers an excellent balance of scalability, simplicity, and operational efficiency for a fast-growing startup like Fastier. As the platform matures, components can be evolved independently if more control is required.
+
+We’d be happy to walk through this design in more detail or discuss alternative approaches such as container-based architectures if and when they become relevant.
+
+Kind regards,
+Yash Ingle
